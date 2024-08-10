@@ -123,6 +123,28 @@ contract GamblePoolTest is Test {
         assertEq(token.balanceOf(user1), yeildAmount);
     }
 
+    function testDistributeYieldOnlyAllowedOnce() public {
+        vm.prank(user1);
+        pool.enterPool(1000 ether);
+
+        vm.warp(block.timestamp + 2 days); // move time forward to lock period
+        pool.lockPool();
+
+        uint256 yeildAmount = 10 ether;
+        token.mint(address(strategy), yeildAmount);
+        strategy.setYieldAmount(yeildAmount); // Set the mock yield
+
+        vm.warp(block.timestamp + 8 days); // move time forward to complete period
+        pool.withdrawFromYieldStrategy();
+
+        pool.distributeYield();
+        vm.expectRevert();
+        pool.distributeYield();
+
+        // Check that the yield was transferred to one of the entrants
+        assertEq(token.balanceOf(user1), yeildAmount);
+    }
+
     function testWithdrawPrincipal() public {
         vm.prank(user1);
         pool.enterPool(100 ether);

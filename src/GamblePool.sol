@@ -17,6 +17,7 @@ contract GamblePool is Ownable {
     uint256 public beginLockPeriod;
     bool public canWithdrawYield;
     address[] public entrants;
+    address winner;
     mapping(address => uint256) public balances;
 
     event EnteredPool(address indexed user, uint256 amount);
@@ -34,6 +35,7 @@ contract GamblePool is Ownable {
         beginLockPeriod = block.timestamp + _entryPeriodLength;
         beginCompletePeriod = beginLockPeriod + _lockPeriodLength;
         canWithdrawYield = false;
+        winner = address(0);
     }
 
     modifier onlyInEntryPeriod() {
@@ -88,14 +90,13 @@ contract GamblePool is Ownable {
 
     function distributeYield() external onlyInCompletePeriod {
         require(canWithdrawYield, "Yield has not been unlocked");
+        require(winner == address(0), "Winner has already been chosen");
         uint256 yieldAmount = yieldStrategy.getYield();
-        address winner = entrants[random() % entrants.length];
+        winner = entrants[random() % entrants.length];
+
         token.transfer(winner, yieldAmount);
 
         emit YieldDistributed(winner, yieldAmount);
-
-        // Reset the pool
-        delete entrants;
     }
 
     function withdrawPrincipal() external onlyInCompletePeriod {
